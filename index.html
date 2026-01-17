@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>MINI FIRE DVE - Dodge Game</title>
+
+<style>
+  body {
+    margin: 0;
+    background: #020617;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    color: white;
+    overflow: hidden;
+  }
+
+  canvas {
+    border: 2px solid #38bdf8;
+    display: none;
+    touch-action: none;
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(#020617, #000);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 10;
+  }
+
+  h1 {
+    color: #38bdf8;
+    letter-spacing: 2px;
+  }
+
+  button {
+    margin-top: 20px;
+    padding: 12px 30px;
+    font-size: 18px;
+    border: none;
+    border-radius: 8px;
+    background: #22c55e;
+    cursor: pointer;
+  }
+
+  .info {
+    position: absolute;
+    top: 15px;
+    font-size: 18px;
+    display: none;
+  }
+</style>
+</head>
+
+<body>
+
+<!-- شاشة البداية -->
+<div class="screen" id="intro">
+  <h1>تُقدَّم من</h1>
+  <h1>🔥 MINI FIRE DVE 🔥</h1>
+</div>
+
+<!-- شاشة الخسارة -->
+<div class="screen" id="gameOver" style="display:none">
+  <h1>💀 انتهت اللعبة</h1>
+  <p>نقاطك: <span id="finalScore"></span></p>
+  <button onclick="restartGame()">إعادة اللعب</button>
+</div>
+
+<div class="info">النقاط: <span id="score">0</span></div>
+<canvas id="game" width="400" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const intro = document.getElementById("intro");
+const gameOverScreen = document.getElementById("gameOver");
+const scoreEl = document.getElementById("score");
+const finalScore = document.getElementById("finalScore");
+const info = document.querySelector(".info");
+
+let player, obstacles, score, gameOver;
+let lastTouchX = null;
+
+function initGame() {
+  player = { x: 170, y: 520, width: 60, height: 20 };
+  obstacles = [];
+  score = 0;
+  gameOver = false;
+  scoreEl.textContent = score;
+}
+
+document.addEventListener("keydown", e => {
+  if (gameOver) return;
+  if (e.key === "ArrowLeft") player.x -= 25;
+  if (e.key === "ArrowRight") player.x += 25;
+});
+
+canvas.addEventListener("touchstart", e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  lastTouchX = e.touches[0].clientX - rect.left;
+});
+
+canvas.addEventListener("touchmove", e => {
+  e.preventDefault();
+  if (lastTouchX === null) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const touchX = e.touches[0].clientX - rect.left;
+  const deltaX = touchX - lastTouchX;
+
+  player.x += deltaX;
+  player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
+
+  lastTouchX = touchX;
+});
+
+canvas.addEventListener("touchend", () => {
+  lastTouchX = null;
+});
+
+function spawnObstacle() {
+  if (gameOver) return;
+  obstacles.push({
+    x: Math.random() * 360,
+    y: -20,
+    width: 40,
+    height: 20,
+    speed: 4 + score * 0.05
+  });
+}
+
+function update() {
+  if (gameOver) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // اللاعب
+  ctx.fillStyle = "#22c55e";
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+
+  // العوائق
+  ctx.fillStyle = "#ef4444";
+  obstacles.forEach((o, i) => {
+    o.y += o.speed;
+    ctx.fillRect(o.x, o.y, o.width, o.height);
+
+    if (
+      o.x < player.x + player.width &&
+      o.x + o.width > player.x &&
+      o.y < player.y + player.height &&
+      o.y + o.height > player.y
+    ) {
+      endGame();
+    }
+
+    if (o.y > canvas.height) {
+      obstacles.splice(i, 1);
+      score++;
+      scoreEl.textContent = score;
+    }
+  });
+
+  requestAnimationFrame(update);
+}
+
+function endGame() {
+  gameOver = true;
+  canvas.style.display = "none";
+  info.style.display = "none";
+  finalScore.textContent = score;
+  gameOverScreen.style.display = "flex";
+}
+
+function restartGame() {
+  gameOverScreen.style.display = "none";
+  startGame();
+}
+
+function startGame() {
+  initGame();
+  canvas.style.display = "block";
+  info.style.display = "block";
+  update();
+}
+
+setInterval(spawnObstacle, 1000);
+
+// شاشة البداية 5 ثواني
+setTimeout(() => {
+  intro.style.display = "none";
+  startGame();
+}, 5000);
+</script>
+
+</body>
+</html>
